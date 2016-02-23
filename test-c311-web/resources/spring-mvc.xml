@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:mvc="http://www.springframework.org/schema/mvc" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:cache="http://www.springframework.org/schema/cache"
+	xmlns:p="http://www.springframework.org/schema/p" 
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+						http://www.springframework.org/schema/beans/spring-beans-3.2.xsd 
+						http://www.springframework.org/schema/context 
+						http://www.springframework.org/schema/context/spring-context-3.2.xsd 
+						http://www.springframework.org/schema/mvc 
+						http://www.springframework.org/schema/mvc/spring-mvc-3.2.xsd
+						http://www.springframework.org/schema/cache  
+                        http://www.springframework.org/schema/cache/spring-cache-3.2.xsd">
+
+	<!-- 自动扫描controller包下的所有类，使其认为spring mvc的控制器 -->
+	<context:component-scan base-package="com.web" />
+	
+    <!-- 拦截器 -->
+	<mvc:interceptors>
+	    <!-- 用户登录验证 -->
+        <mvc:interceptor>
+            <mvc:mapping path="/*" />
+            <bean class="com.web.interceptor.UserInterceptor" />
+        </mvc:interceptor>
+	    <!-- 权限资源信息变更 -->
+        <mvc:interceptor>
+            <mvc:mapping path="/*" />
+            <bean class="com.web.interceptor.AuthorizationFunctionChangedInterceptor" />
+        </mvc:interceptor>
+    </mvc:interceptors>
+	
+	<!-- 引入属性文件 -->
+	<context:property-placeholder location="classpath:config.properties"/>
+	
+	<mvc:annotation-driven content-negotiation-manager="contentNegotiationManager" />
+	
+	
+	<!-- <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver" 
+	p:defaultEncoding="utf-8" p:maxUploadSize="100000"/> -->
+	
+	
+	<bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+	</bean>
+	
+	
+	<bean id="contentNegotiationManager"
+		class="org.springframework.web.accept.ContentNegotiationManagerFactoryBean">
+		<property name="favorPathExtension" value="false" />
+		<property name="favorParameter" value="false" />
+		<property name="ignoreAcceptHeader" value="false" />
+		<property name="mediaTypes">
+			<value>
+				atom=application/atom+xml
+				html=text/html
+				json=application/json
+				*=*/*
+			</value>
+		</property>
+	</bean>
+
+	<!-- 使用freemarker添加视图设置 -->
+	<bean id="viewResolver"
+		class="org.springframework.web.servlet.view.freemarker.FreeMarkerViewResolver">
+		<property name="cache" value="true" />
+		<property name="prefix" value="" />
+		<property name="suffix" value=".ftl" />
+		<property name="viewClass">
+			<value>com.web.util.MyFreeMarkerView
+			</value>
+		</property>
+		<property name="contentType" value="text/html;charset=UTF-8"></property>
+		<property name="requestContextAttribute" value="request" />
+		<property name="exposeSpringMacroHelpers" value="true" />
+		<property name="exposeRequestAttributes" value="true" />
+		<property name="exposeSessionAttributes" value="true" />
+		<property name="order" value="0" />
+	</bean>
+
+	<!-- 对模型视图名称的解析，即在模型视图名称添加前后缀 -->
+	<bean id="viewResolverCommon"
+		class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<property name="prefix" value="/WEB-INF/views/" />
+		<property name="suffix" value=".jsp" /><!--可为空,方便实现自已的依据扩展名来选择视图解释类的逻辑 -->
+		<property name="viewClass">
+			<value>org.springframework.web.servlet.view.InternalResourceView
+			</value>
+		</property>
+		<property name="order" value="1" />
+	</bean>
+	<!-- 配置freeMarker的模板路径 -->
+	<bean id="freemarkerConfigurer"
+		class="org.springframework.web.servlet.view.freemarker.FreeMarkerConfigurer">
+		<property name="templateLoaderPath" value="/WEB-INF/ftl/" />
+		<property name="defaultEncoding" value="UTF-8" />
+		<property name="freemarkerSettings">
+			<props>
+				<prop key="template_update_delay">10</prop>
+				<prop key="locale">zh_CN</prop>
+				<prop key="datetime_format">yyyy-MM-dd HH:mm:ss</prop>
+				<prop key="date_format">yyyy-MM-dd</prop>
+				<prop key="number_format">#.##</prop>
+			</props>
+		</property>
+	</bean>
+	<bean id="configuration" class="freemarker.template.Configuration"></bean>
+	<!-- 缓存配置 -->
+	<cache:annotation-driven />
+	<!-- Spring提供的基于的Ehcache实现的缓存管理器 -->
+	<bean id="ehcache" class="org.springframework.cache.ehcache.EhCacheManagerFactoryBean"     
+                       p:configLocation="classpath:ehcache.xml"     
+                       p:shared="true"/>
+    <bean id="cacheManager" class="org.springframework.cache.ehcache.EhCacheCacheManager"    
+                            p:cacheManager-ref="ehcache"/>
+
+    <!-- 异常处理org.springframework.web.servlet.handler.SimpleMappingExceptionResolver -->
+  	<bean id="exceptionResolver" class="com.web.exception.GlobalMappingExceptionResolver">
+	  <property name="defaultErrorView">
+            <value>failure</value>
+      </property>
+	  <property name="exceptionMappings">
+	    <props>
+	      <prop key="java.lang.Throwable">redirect:errorException.jsp</prop>
+	    </props>
+	  </property>
+	     <!-- 设置日志输出级别，不定义则默认不输出警告等错误日志信息       
+         <property name="warnLogger" value="SimpleMappingExceptionResolver"></property>  -->
+         <!-- 默认HTTP状态码 -->
+         <property name="defaultStatusCode" value="500"></property> 
+	</bean>
+</beans>

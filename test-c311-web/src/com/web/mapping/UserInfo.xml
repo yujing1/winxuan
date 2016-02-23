@@ -1,0 +1,556 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.huiquan.dao.PubPartyMapper">
+	<resultMap id="BaseResultMap" type="com.huiquan.model.PubParty">
+		<result column="PARTYID" property="partyid" jdbcType="VARCHAR" />
+		<result column="PARTYNO" property="partyno" jdbcType="VARCHAR" />
+		<result column="PARTYNAME" property="partyname" jdbcType="VARCHAR" />
+		<result column="SECUEVEL" property="secuevel" jdbcType="VARCHAR" />
+		<result column="PASSWORD" property="password" jdbcType="VARCHAR" />
+		<result column="IDENTITY" property="identity" jdbcType="VARCHAR" />
+		<result column="PARTYTYPECODE" property="partytypecode"
+			jdbcType="VARCHAR" />
+		<result column="EMAIL" property="email" jdbcType="VARCHAR" />
+		<result column="USER_STATE" property="userState" jdbcType="VARCHAR" />
+		<result column="ADDR" property="addr" jdbcType="VARCHAR" />
+		<result column="USERIP" property="userip" jdbcType="VARCHAR" />
+		<result column="UPDATETIME" property="updatetime" jdbcType="TIMESTAMP" />
+		<result column="CREATETIME" property="createtime" jdbcType="TIMESTAMP" />
+		<result column="NOTE" property="note" jdbcType="VARCHAR" />
+		<result column="DATA_STATUS" property="dataStatus" jdbcType="VARCHAR" />
+		<result column="PARTYWORKNO" property="partyworkno" jdbcType="VARCHAR" />
+		<result column="WORKCLASSESCODE" property="workclassescode"
+			jdbcType="VARCHAR" />
+		<result column="OFFICE_PHONE" property="officePhone" jdbcType="VARCHAR" />
+		<result column="MOBILE_PHONE" property="mobilePhone" jdbcType="VARCHAR" />
+		<result column="IS_LEADER" property="isLeader" jdbcType="VARCHAR" />
+	</resultMap>
+
+
+	<update id="updateIsLeader">
+		update pub_party
+		set
+		IS_LEADER=#{isLeader,jdbcType=VARCHAR}
+		where
+		PARTYID=#{pubPartyId,jdbcType=VARCHAR}
+	</update>
+	<!-- 获取所有的中心（即主站以及子站） -->
+	<select id="findALlCenter" parameterType="java.util.HashMap"
+		resultType="java.util.HashMap">
+		SELECT
+		pp.PARTYID,
+		pp.PARTYNAME,
+		pp.WORKCLASSESCODE
+		FROM pub_party pp
+		<where>
+			<if test="map.workclassescode!=null and map.workclassescode!='' ">
+				pp.WORKCLASSESCODE
+				=#{map.workclassescode,jdbcType=VARCHAR}
+				AND
+			</if>
+			<if test="true">
+				pp.PARTYTYPECODE = #{map.partytypecode,jdbcType=VARCHAR}
+				AND pp.DATA_STATUS = #{map.on,jdbcType=VARCHAR}
+			</if>
+		</where>
+		ORDER BY pp.WORKCLASSESCODE
+	</select>
+	<!-- 获取所有用户 -->
+	<select id="findAllUserNotUnderRole" resultType="java.util.HashMap"
+		parameterType="java.util.HashMap">
+		SELECT pp.*
+		FROM pub_party pp
+		<where>
+			<if test="true">
+				AND pp.PARTYTYPECODE
+				=#{map.partytypecode,jdbcType=VARCHAR}
+				AND pp.DATA_STATUS
+				=#{map.on,jdbcType=VARCHAR}
+			</if>
+			<if test="map.cond!=null and map.cond!=''">
+				AND (pp.PARTYNO LIKE CONCAT(CONCAT('%',
+				#{map.cond,jdbcType=VARCHAR}),'%') OR pp.PARTYNAME LIKE
+				CONCAT(CONCAT('%',
+				#{map.cond,jdbcType=VARCHAR}),'%'))
+			</if>
+		</where>
+		ORDER BY pp.IS_LEADER
+		<if test="pag!=null">
+			limit
+			#{pag.first,jdbcType=INTEGER},#{pag.rows,jdbcType=INTEGER}
+		</if>
+	</select>
+	<!-- 查询 -->
+	<select id="findAllPubParty" resultType="java.util.Map"
+		parameterType="com.huiquan.model.PubParty">
+		select a.PARTYID as partyid,
+		a.PARTYNAME as partyname,
+		a.PARTYNO as
+		partyno,
+		a.ADDR as addr,
+		a.EMAIL as email,
+		a.MOBILE_PHONE as mobilePhone,
+		CAST(DATE_FORMAT(a.UPDATETIME,'%Y-%m-%d') AS CHAR) AS updatetime,
+		(select PARTYNAME from pub_party where
+		PARTYID=(
+		select PUB_PARTYID from pub_party_relation where PARTYID=
+		a.PARTYID))
+		as department
+		from pub_party a
+		<where>
+			<if test="pubParty.partyname!=null and pubParty.partyname!='' ">
+				a.PARTYNAME LIKE CONCAT(CONCAT('%',
+				#{pubParty.partyname,jdbcType=VARCHAR}),'%') and
+			</if>
+			<if test="pubParty.partyno!=null and pubParty.partyno!='' ">
+				a.PARTYNO LIKE CONCAT(CONCAT('%',
+				#{pubParty.partyno,jdbcType=VARCHAR}),'%') and
+			</if>
+			<if test="pubParty.addr!=null and pubParty.addr!='' ">
+				a.ADDR LIKE CONCAT(CONCAT('%',
+				#{pubParty.addr,jdbcType=VARCHAR}),'%') and
+			</if>
+
+			<if test="pubParty.email!=null and pubParty.email!='' ">
+				a.EMAIL LIKE CONCAT(CONCAT('%',
+				#{pubParty.email,jdbcType=VARCHAR}),'%') and
+			</if>
+			<if test="pubParty.mobilePhone!=null and pubParty.mobilePhone!='' ">
+				a.MOBILE_PHONE LIKE CONCAT(CONCAT('%',
+				#{pubParty.mobilePhone,jdbcType=VARCHAR}),'%') and
+			</if>
+			<if test="StartDate!=null and StartDate!=''">
+			 <![CDATA[ a.UPDATETIME >=  #{StartDate} and ]]>
+			</if>
+			<if test="EndDate!=null and EndDate!=''">
+				 <![CDATA[ a.UPDATETIME <=  #{EndDate}  and ]]>
+			</if>
+			<if test="true">
+			<![CDATA[	a.DATA_STATUS=#{dataStatus,jdbcType=VARCHAR} and
+				a.PARTYTYPECODE=#{partTypeCode,jdbcType=VARCHAR} and
+				 a.PARTYNO <> 'admin']]>
+			</if>
+		</where>
+		order by a.UPDATETIME desc
+		limit
+		#{pag.first,jdbcType=INTEGER},#{pag.rows,jdbcType=INTEGER}
+	</select>
+	<!-- 查询绑定的人员信息 -->
+	<select id="findAlreayBound" resultMap="BaseResultMap"
+		parameterType="com.huiquan.model.PubParty">
+		select a.*
+		FROM pub_party a
+		<where>
+			<if test="true">
+		     <![CDATA[  FIND_IN_SET(PARTYID, getAllUsersUnderDepartment(#{pubParty.partyid,jdbcType=VARCHAR})) and  ]]>
+			</if>
+			<if test="pubParty.partyname!=null and pubParty.partyname!='' ">
+				a.PARTYNAME LIKE CONCAT(CONCAT('%',
+				#{pubParty.partyname,jdbcType=VARCHAR}),'%') and
+			</if>
+			<if test="pubParty.partyno!=null and pubParty.partyno!='' ">
+				a.PARTYNO LIKE CONCAT(CONCAT('%',
+				#{pubParty.partyno,jdbcType=VARCHAR}),'%') and
+			</if>
+			<if test="pubParty.secuevel!=null and pubParty.secuevel!='' ">
+				a.SECUEVEL LIKE CONCAT(CONCAT('%',
+				#{pubParty.secuevel,jdbcType=VARCHAR}),'%') and
+			</if>
+			<if test="pubParty.addr!=null and pubParty.addr!='' ">
+				a.ADDR LIKE CONCAT(CONCAT('%',
+				#{pubParty.addr,jdbcType=VARCHAR}),'%') and
+			</if>
+			<if test="pubParty.email!=null and pubParty.email!='' ">
+				a.EMAIL LIKE CONCAT(CONCAT('%',
+				#{pubParty.email,jdbcType=VARCHAR}),'%') and
+			</if>
+			<if test="pubParty.mobilePhone!=null and pubParty.mobilePhone!='' ">
+				a.MOBILE_PHONE LIKE CONCAT(CONCAT('%',
+				#{pubParty.mobilePhone,jdbcType=VARCHAR}),'%') and
+			</if>
+			<if test="StartDate!=null and StartDate!=''">
+			 <![CDATA[ a.UPDATETIME >=  #{StartDate} and ]]>
+			</if>
+			<if test="EndDate!=null and EndDate!=''">
+				 <![CDATA[ a.UPDATETIME <=  #{EndDate}  and ]]>
+			</if>
+			<if test="true">
+				a.DATA_STATUS =#{dataStatus,jdbcType=VARCHAR} and
+				a.PARTYTYPECODE=#{partTypeCode,jdbcType=VARCHAR}
+			</if>
+		</where>
+		order by a.UPDATETIME desc
+		limit
+		#{pag.first,jdbcType=INTEGER},#{pag.rows,jdbcType=INTEGER}
+	</select>
+	<!-- 添加 -->
+	<insert id="addPubParty" parameterType="com.huiquan.model.PubParty">
+		insert into pub_party
+		(PARTYID, PARTYNO, PARTYNAME,
+		SECUEVEL, PASSWORD, IDENTITY,
+		PARTYTYPECODE, EMAIL, USER_STATE,
+		ADDR, USERIP,
+		UPDATETIME,
+		CREATETIME,
+		NOTE,
+		DATA_STATUS, PARTYWORKNO, WORKCLASSESCODE,
+		OFFICE_PHONE,
+		MOBILE_PHONE,IS_LEADER)
+		values
+		(#{partyid,jdbcType=VARCHAR},
+		#{partyno,jdbcType=VARCHAR},
+		#{partyname,jdbcType=VARCHAR},
+		#{secuevel,jdbcType=VARCHAR},
+		#{password,jdbcType=VARCHAR},
+		#{identity,jdbcType=VARCHAR},
+		#{partytypecode,jdbcType=VARCHAR},
+		#{email,jdbcType=VARCHAR},
+		#{userState,jdbcType=VARCHAR},
+		#{addr,jdbcType=VARCHAR},
+		#{userip,jdbcType=VARCHAR},
+		#{updatetime,jdbcType=DATE}, #{createtime,jdbcType=DATE},
+		#{note,jdbcType=VARCHAR},
+		#{dataStatus,jdbcType=VARCHAR},
+		#{partyworkno,jdbcType=VARCHAR}, #{workclassescode,jdbcType=VARCHAR},
+		#{officePhone,jdbcType=VARCHAR},
+		#{mobilePhone,jdbcType=VARCHAR},#{isLeader,jdbcType=VARCHAR})
+	</insert>
+	<!-- 修改 -->
+	<update id="updatePubParty" parameterType="com.huiquan.model.PubParty">
+		update pub_party
+		set
+		<!-- PARTYID=#{partyid,jdbcType=VARCHAR}, -->
+		PARTYNO=#{partyno,jdbcType=VARCHAR},
+		PARTYNAME=#{partyname,jdbcType=VARCHAR},
+		SECUEVEL=#{secuevel,jdbcType=VARCHAR},
+		PASSWORD=#{password,jdbcType=VARCHAR},
+		IDENTITY=#{identity,jdbcType=VARCHAR},
+		PARTYTYPECODE=#{partytypecode,jdbcType=VARCHAR},
+		EMAIL=#{email,jdbcType=VARCHAR},
+		USER_STATE=#{userState,jdbcType=VARCHAR},
+		ADDR=#{addr,jdbcType=VARCHAR},
+		USERIP=#{userip,jdbcType=VARCHAR},
+		UPDATETIME=#{updatetime,jdbcType=DATE},
+		CREATETIME=#{createtime,jdbcType=DATE},
+		NOTE=#{note,jdbcType=VARCHAR},
+		DATA_STATUS=#{dataStatus,jdbcType=VARCHAR},
+		PARTYWORKNO=#{partyworkno,jdbcType=VARCHAR},
+		WORKCLASSESCODE=#{workclassescode,jdbcType=VARCHAR},
+		OFFICE_PHONE=#{officePhone,jdbcType=VARCHAR},
+		MOBILE_PHONE=#{mobilePhone,jdbcType=VARCHAR},
+		IS_LEADER=#{isLeader,jdbcType=VARCHAR}
+		where
+		PARTYID=#{partyid,jdbcType=VARCHAR}
+	</update>
+	<!-- 单个逻辑删除 （修改某个状态） -->
+	<update id="deleteOnePubParty" parameterType="java.lang.String">
+		update pub_party
+		set DATA_STATUS=#{dataStatus,jdbcType=VARCHAR}
+		where
+		PARTYID=#{partyid,jdbcType=VARCHAR}
+	</update>
+	<!--总记录条数 -->
+	<select id="findAcount" resultType="java.lang.Integer"
+		parameterType="com.huiquan.model.PubParty">
+		select count(*) from pub_party
+		<where>
+			<if test="pubParty.partyname!=null and pubParty.partyname!='' ">
+				PARTYNAME LIKE CONCAT(CONCAT('%',
+				#{pubParty.partyname,jdbcType=VARCHAR}),'%') and
+			</if>
+			<if test="pubParty.partyno!=null and pubParty.partyno!='' ">
+				PARTYNO LIKE CONCAT(CONCAT('%',
+				#{pubParty.partyno,jdbcType=VARCHAR}),'%') and
+			</if>
+			<if test="pubParty.secuevel!=null and pubParty.secuevel!='' ">
+				SECUEVEL LIKE CONCAT(CONCAT('%',
+				#{pubParty.secuevel,jdbcType=VARCHAR}),'%') and
+			</if>
+			<if test="pubParty.addr!=null and pubParty.addr!='' ">
+				ADDR LIKE CONCAT(CONCAT('%',
+				#{pubParty.addr,jdbcType=VARCHAR}),'%') and
+			</if>
+			<if test="pubParty.email!=null and pubParty.email!='' ">
+				EMAIL LIKE CONCAT(CONCAT('%',
+				#{pubParty.email,jdbcType=VARCHAR}),'%') and
+			</if>
+			<if test="pubParty.mobilePhone!=null and pubParty.mobilePhone!='' ">
+				MOBILE_PHONE LIKE CONCAT(CONCAT('%',
+				#{pubParty.mobilePhone,jdbcType=VARCHAR}),'%') and
+			</if>
+			<if test="StartDate!=null and StartDate!=''">
+			 <![CDATA[ UPDATETIME >=  #{StartDate} and ]]>
+			</if>
+			<if test="EndDate!=null and EndDate!=''">
+				 <![CDATA[ UPDATETIME <=  #{EndDate}  and ]]>
+			</if>
+			<if test="true">
+				<![CDATA[ DATA_STATUS=#{dataStatus,jdbcType=VARCHAR} and
+				PARTYTYPECODE=#{partTypeCode,jdbcType=VARCHAR} and 
+				 PARTYNO <> 'admin']]>
+			</if>
+		</where>
+	</select>
+	<!-- 查询绑定的人员信息 -->
+	<select id="findAcountAlreay" resultType="java.lang.Integer"
+		parameterType="com.huiquan.model.PubParty">
+		select count(*)
+		FROM pub_party a
+		<where>
+			<if test="true">
+		     <![CDATA[  FIND_IN_SET(PARTYID, getAllUsersUnderDepartment(#{pubParty.partyid,jdbcType=VARCHAR})) and  ]]>
+			</if>
+			<if test="pubParty.partyname!=null and pubParty.partyname!='' ">
+				a.PARTYNAME LIKE CONCAT(CONCAT('%',
+				#{pubParty.partyname,jdbcType=VARCHAR}),'%') and
+			</if>
+			<if test="pubParty.partyno!=null and pubParty.partyno!='' ">
+				a.PARTYNO LIKE CONCAT(CONCAT('%',
+				#{pubParty.partyno,jdbcType=VARCHAR}),'%') and
+			</if>
+			<if test="pubParty.secuevel!=null and pubParty.secuevel!='' ">
+				a.SECUEVEL LIKE CONCAT(CONCAT('%',
+				#{pubParty.secuevel,jdbcType=VARCHAR}),'%') and
+			</if>
+			<if test="pubParty.addr!=null and pubParty.addr!='' ">
+				a.ADDR LIKE CONCAT(CONCAT('%',
+				#{pubParty.addr,jdbcType=VARCHAR}),'%') and
+			</if>
+			<if test="pubParty.email!=null and pubParty.email!='' ">
+				a.EMAIL LIKE CONCAT(CONCAT('%',
+				#{pubParty.email,jdbcType=VARCHAR}),'%') and
+			</if>
+			<if test="pubParty.mobilePhone!=null and pubParty.mobilePhone!='' ">
+				a.MOBILE_PHONE LIKE CONCAT(CONCAT('%',
+				#{pubParty.mobilePhone,jdbcType=VARCHAR}),'%') and
+			</if>
+			<if test="StartDate!=null and StartDate!=''">
+			 <![CDATA[ a.UPDATETIME >=  #{StartDate} and ]]>
+			</if>
+			<if test="EndDate!=null and EndDate!=''">
+				 <![CDATA[ a.UPDATETIME <=  #{EndDate}  and ]]>
+			</if>
+			<if test="true">
+				a.DATA_STATUS =#{dataStatus,jdbcType=VARCHAR} and
+				a.PARTYTYPECODE=#{partTypeCode,jdbcType=VARCHAR}
+			</if>
+		</where>
+	</select>
+	<!-- 根据id查找 -->
+	<select id="findOnePubParty" resultMap="BaseResultMap"
+		parameterType="java.lang.String">
+		select * from pub_party where
+		PARTYID=#{partyid,jdbcType=VARCHAR}
+	</select>
+	<!-- 根据partyno查找 -->
+	<select id="checkPartyNo" parameterType="java.lang.String" resultType="java.lang.Integer">
+		select count(*) from pub_party where
+		PARTYNO=#{partyno,jdbcType=VARCHAR} and DATA_STATUS=#{status,jdbcType=VARCHAR}
+	</select>
+	<!-- 根据人或者/部门 -->
+	<select id="findPubPartyDepart" resultMap="BaseResultMap"
+		parameterType="java.lang.String">
+		select * from pub_party where
+		PARTYID=#{partyid,jdbcType=VARCHAR}
+	</select>
+	<insert id="insertSelective" parameterType="com.huiquan.model.PubParty">
+		insert into pub_party
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="partyid != null">
+				PARTYID,
+			</if>
+			<if test="partyno != null">
+				PARTYNO,
+			</if>
+			<if test="partyname != null">
+				PARTYNAME,
+			</if>
+			<if test="secuevel != null">
+				SECUEVEL,
+			</if>
+			<if test="password != null">
+				PASSWORD,
+			</if>
+			<if test="identity != null">
+				IDENTITY,
+			</if>
+			<if test="partytypecode != null">
+				PARTYTYPECODE,
+			</if>
+			<if test="email != null">
+				EMAIL,
+			</if>
+			<if test="userState != null">
+				USER_STATE,
+			</if>
+			<if test="addr != null">
+				ADDR,
+			</if>
+			<if test="userip != null">
+				USERIP,
+			</if>
+			<if test="updatetime != null">
+				UPDATETIME,
+			</if>
+			<if test="createtime != null">
+				CREATETIME,
+			</if>
+			<if test="note != null">
+				NOTE,
+			</if>
+			<if test="dataStatus != null">
+				DATA_STATUS,
+			</if>
+			<if test="partyworkno != null">
+				PARTYWORKNO,
+			</if>
+			<if test="workclassescode != null">
+				WORKCLASSESCODE,
+			</if>
+			<if test="officePhone != null">
+				OFFICE_PHONE,
+			</if>
+			<if test="mobilePhone != null">
+				MOBILE_PHONE,
+			</if>
+			<if test="isLeader != null">
+				IS_LEADER,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="partyid != null">
+				#{partyid,jdbcType=VARCHAR},
+			</if>
+			<if test="partyno != null">
+				#{partyno,jdbcType=VARCHAR},
+			</if>
+			<if test="partyname != null">
+				#{partyname,jdbcType=VARCHAR},
+			</if>
+			<if test="secuevel != null">
+				#{secuevel,jdbcType=VARCHAR},
+			</if>
+			<if test="password != null">
+				#{password,jdbcType=VARCHAR},
+			</if>
+			<if test="identity != null">
+				#{identity,jdbcType=VARCHAR},
+			</if>
+			<if test="partytypecode != null">
+				#{partytypecode,jdbcType=VARCHAR},
+			</if>
+			<if test="email != null">
+				#{email,jdbcType=VARCHAR},
+			</if>
+			<if test="userState != null">
+				#{userState,jdbcType=VARCHAR},
+			</if>
+			<if test="addr != null">
+				#{addr,jdbcType=VARCHAR},
+			</if>
+			<if test="userip != null">
+				#{userip,jdbcType=VARCHAR},
+			</if>
+			<if test="updatetime != null">
+				#{updatetime,jdbcType=DATE},
+			</if>
+			<if test="createtime != null">
+				#{createtime,jdbcType=DATE},
+			</if>
+			<if test="note != null">
+				#{note,jdbcType=VARCHAR},
+			</if>
+			<if test="dataStatus != null">
+				#{dataStatus,jdbcType=VARCHAR},
+			</if>
+			<if test="partyworkno != null">
+				#{partyworkno,jdbcType=VARCHAR},
+			</if>
+			<if test="workclassescode != null">
+				#{workclassescode,jdbcType=VARCHAR},
+			</if>
+			<if test="officePhone != null">
+				#{officePhone,jdbcType=VARCHAR},
+			</if>
+			<if test="mobilePhone != null">
+				#{mobilePhone,jdbcType=VARCHAR},
+			</if>
+			<if test="isLeader != null">
+				#{isLeader,jdbcType=VARCHAR},
+			</if>
+		</trim>
+	</insert>
+	<update id="updateByPrimaryKeySelective" parameterType="com.huiquan.model.PubParty">
+		update pub_party
+		<set>
+			<if test="partyno != null">
+				PARTYNO = #{partyno,jdbcType=VARCHAR},
+			</if>
+			<if test="partyname != null">
+				PARTYNAME = #{partyname,jdbcType=VARCHAR},
+			</if>
+			<if test="secuevel != null">
+				SECUEVEL = #{secuevel,jdbcType=VARCHAR},
+			</if>
+			<if test="password != null">
+				PASSWORD = #{password,jdbcType=VARCHAR},
+			</if>
+			<if test="identity != null">
+				IDENTITY = #{identity,jdbcType=VARCHAR},
+			</if>
+			<if test="partytypecode != null">
+				PARTYTYPECODE = #{partytypecode,jdbcType=VARCHAR},
+			</if>
+			<if test="email != null">
+				EMAIL = #{email,jdbcType=VARCHAR},
+			</if>
+			<if test="userState != null">
+				USER_STATE = #{userState,jdbcType=VARCHAR},
+			</if>
+			<if test="addr != null">
+				ADDR = #{addr,jdbcType=VARCHAR},
+			</if>
+			<if test="userip != null">
+				USERIP = #{userip,jdbcType=VARCHAR},
+			</if>
+			<if test="updatetime != null">
+				UPDATETIME = #{updatetime,jdbcType=DATE},
+			</if>
+			<if test="createtime != null">
+				CREATETIME = #{createtime,jdbcType=DATE},
+			</if>
+			<if test="note != null">
+				NOTE = #{note,jdbcType=VARCHAR},
+			</if>
+			<if test="dataStatus != null">
+				DATA_STATUS = #{dataStatus,jdbcType=VARCHAR},
+			</if>
+			<if test="partyworkno != null">
+				PARTYWORKNO = #{partyworkno,jdbcType=VARCHAR},
+			</if>
+			<if test="workclassescode != null">
+				WORKCLASSESCODE = #{workclassescode,jdbcType=VARCHAR},
+			</if>
+			<if test="officePhone != null">
+				OFFICE_PHONE = #{officePhone,jdbcType=VARCHAR},
+			</if>
+			<if test="mobilePhone != null">
+				MOBILE_PHONE = #{mobilePhone,jdbcType=VARCHAR},
+			</if>
+			<if test="isLeader != null">
+				IS_LEADER = #{isLeader,jdbcType=VARCHAR},
+			</if>
+		</set>
+		where PARTYID = #{partyid,jdbcType=VARCHAR}
+	</update>
+	<select id="selectAllByUser" resultMap="BaseResultMap"
+		parameterType="java.lang.String">
+		select a.*
+		FROM pub_party a
+		<where>
+			<if test="partyno!=null and partyno!='' ">
+				a.PARTYNO = #{partyno,jdbcType=VARCHAR}
+			</if>
+		</where>
+	</select>
+</mapper>
